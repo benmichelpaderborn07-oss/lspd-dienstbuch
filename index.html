@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LSPD Dienstbuch</title>
+<style>
+:root{--bg:#0c0c0e;--panel:#111114;--card:#17171b;--line:#26262c;--tx:#ececf0;--mut:#8c8c96;--ac:#f08a24;--ac2:#3a2412}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--tx);font:15px/1.6 "Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:14px;padding:14px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
+.logo{width:36px;height:36px;border:2px solid var(--ac);border-radius:50%;display:grid;place-items:center;color:var(--ac);font-weight:800;font-size:11px}
+header b{display:block;font-size:17px;line-height:1.2}
+header small{color:var(--ac);letter-spacing:.14em;font-size:11px}
+.btns{margin-left:auto;display:flex;align-items:center;gap:10px}
+.btn{background:none;border:1px solid var(--line);color:var(--tx);border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer}
+.btn:hover,.btn.on{border-color:var(--ac);color:var(--ac)}
+.btn:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.live{color:#3ddc84;font-size:13px}
+.live::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#3ddc84;margin-right:6px}
+[contenteditable=true]{outline:1px dashed var(--ac);outline-offset:3px}
+
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--ac2);border:1px solid var(--ac);border-radius:8px;padding:12px 14px;margin-bottom:26px}
+.bar .hint{width:100%;color:#d9b48f;font-size:13px}
+.btn.sm{padding:4px 10px;font-size:12px}
+.mini{background:none;border:0;color:var(--mut);cursor:pointer;margin-left:8px;font-size:13px}
+.mini:hover{color:#ff6b5e}
+.tb{display:flex;gap:6px;justify-content:flex-end;margin-bottom:8px}
+.addbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.page .box{position:relative}
+td.x,th.x{width:34px;padding:0}
+[contenteditable=true]{min-height:1.2em;cursor:text}
+#lock{position:fixed;inset:0;background:var(--bg);display:none;place-items:center;z-index:50;padding:24px;text-align:center}
+body.locked #lock{display:grid}
+body.locked header,body.locked .wrap{visibility:hidden}
+.dc{background:#5865f2;color:#fff;border:0;border-radius:8px;padding:12px 26px;font-size:15px;font-weight:600;cursor:pointer}
+.dc:hover{background:#4752c4}
+.dc:focus-visible{outline:2px solid var(--ac);outline-offset:3px}
+#lmsg{margin:18px auto 0;color:#ff9a8a;max-width:560px;overflow-wrap:anywhere}
+.usr{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut)}
+.usr img{width:26px;height:26px;border-radius:50%}
+@media print{#lock{display:none}.bar,.tb,.addbar,.mini{display:none}header,nav{display:none}main{overflow:visible}body{background:#fff;color:#000}.box{border-color:#999}}
+#burger{display:none;margin-left:0;background:none;border:1px solid var(--line);color:var(--tx);border-radius:6px;padding:6px 10px;cursor:pointer}
+.wrap{flex:1;display:flex;min-height:0}
+nav{width:260px;background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:12px}
+nav h4{margin:14px 0 2px}
+nav h4 button{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;justify-content:space-between;align-items:center;color:var(--ac);font-size:11px;letter-spacing:.18em;padding:8px;border-radius:6px}
+nav h4 button:hover{background:#1a1a1f}
+nav h4 button:focus-visible{outline:2px solid var(--ac)}
+nav h4 button::after{content:"▾";transition:transform .15s}
+nav h4.closed button::after{transform:rotate(-90deg)}
+nav .g.closed{display:none}
+nav a{display:block;padding:8px 12px;border-radius:7px;color:var(--mut);text-decoration:none;font-size:14px}
+nav a:hover{color:var(--tx)}
+nav a.on{border-left:3px solid var(--ac);background:#1e1e23;color:var(--tx)}
+nav a:focus-visible,#burger:focus-visible,.tile:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+main{flex:1;overflow:auto;padding:48px 6vw}
+.in{max-width:960px;margin:auto}
+.hero{text-align:center;padding:30px 0 40px}
+.seal{width:150px;height:150px;margin:0 auto 24px;border:3px solid var(--ac);border-radius:50%;display:grid;place-items:center;color:var(--ac);font-size:30px;font-weight:800;letter-spacing:.12em;box-shadow:0 0 40px #f08a2422 inset}
+h1{font-size:clamp(28px,5vw,42px);color:#d9a27a}
+h2{font-size:28px;margin-bottom:6px}
+.sub{color:var(--ac);letter-spacing:.2em;font-size:12px;margin-top:8px}
+.lead{margin:28px 0 18px;color:#d2d2d8}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-top:20px}
+.tile{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:22px;color:inherit;text-decoration:none}
+.tile:hover{border-color:var(--ac)}
+.tile b{display:block;margin-bottom:6px}
+.tile span{color:var(--mut);font-size:13.5px}
+.page h2+p{color:var(--mut);margin-bottom:22px}
+.page .box{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--ac);border-radius:8px;padding:16px 20px;margin-bottom:14px}
+.page .box h3{font-size:16px;margin-bottom:4px}
+.page .box p,.page li{color:#c4c4cc}
+.page ul{padding-left:20px;margin-top:6px}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-size:14px}
+th{color:var(--ac);font-weight:600}
+@media(max-width:800px){
+ #burger{display:block}
+ nav{position:fixed;inset:65px 0 0 0;width:auto;z-index:5;display:none}
+ nav.open{display:block}
+ main{padding:28px 5vw}
+}
+</style>
+</head>
+<body>
+<header>
+ <div class="logo">LSPD</div>
+ <div><b>Los Santos Police Department</b><small>OFFIZIELLES DIENSTBUCH</small></div>
+ <div class="btns"><span class="usr" id="usr" hidden></span><button class="btn" id="edit">Bearbeiten</button><button class="btn" id="export">Exportieren</button><button class="btn" id="logout" hidden>Abmelden</button><span class="live">Handbuch Aktiv</span><button id="burger" aria-label="Menü">Menü</button></div>
+</header>
+<div id="lock"><div><div class="seal">LSPD</div><h1>Dienstbuch</h1><p class="lead">Melde dich mit Discord an, um das Dienstbuch zu öffnen.</p><button class="dc" id="login" type="button">Mit Discord anmelden</button><p id="lmsg" role="alert"></p></div></div>
+<div class="wrap">
+ <nav id="nav" aria-label="Navigation"></nav>
+ <main><div class="in" id="view"></div></main>
+</div>
+
+<script>/* ============ DISCORD-LOGIN EINSTELLEN ============
+   CLIENT_ID:     Application-ID aus dem Discord Developer Portal
+   GUILD_ID:      ID des LSPD-Discord-Servers (leer = jeder Discord-Account darf rein)
+   ALLOWED_ROLES: Rollen-IDs, die das Dienstbuch sehen dürfen (leer = alle Servermitglieder)
+   EDIT_ROLES:    Rollen-IDs, die den Button "Bearbeiten" sehen (leer = alle, die rein dürfen) */
+const CFG={1560967995965317120:"",GUILD_ID:"",1560432321948028996:[],1560432322031915234:[]};
+
+
+/* ============ INHALTE HIER ANPASSEN ============
+   Jede Seite: id, Titel, Beschreibung und Blöcke (box = Textkasten, list = Liste, table = Tabelle) */
+const GROUPS = [
+ {name:"Allgemeines", pages:["home"]},
+ {name:"Verhalten & Disziplin", pages:["verhalten","disziplin","aufstieg","raenge","sanktionen"]},
+ {name:"Kleidung", pages:["frauen","maenner","unitkleidung"]},
+ {name:"Lizenz für Bürger", pages:["waffenscheine"]},
+ {name:"Streifendienst", pages:["uebersicht","ortskunde","fuhrpark","essen","funk","waffen","festnehmen","hilfe","verkehr","strafzettel","akten","bericht","fahndung","emotes"]},
+ {name:"Units", pages:["hauptunits","spezialunits"]}
+];
+
+const PAGES = {
+ home:{t:"Startseite"},
+ verhalten:{t:"Verhaltensregeln",d:"Allgemeine Regeln für das Auftreten im und außer Dienst.",b:[
+  {box:["Auftreten","Höflich, sachlich und respektvoll gegenüber Bürgern und Kollegen. Das LSPD wird immer professionell vertreten."]},
+  {list:["Anweisungen von Vorgesetzten werden befolgt","Kein Missbrauch von Dienstrechten oder Ausrüstung","Vertrauliche Informationen bleiben im Department"]}]},
+ disziplin:{t:"Dienstdisziplin",d:"Pünktlichkeit, Abmeldung und Verhalten im Dienst.",b:[
+  {box:["Dienstzeiten","Dienstantritt und -ende werden im LawNet eingetragen. Abwesenheiten werden vorher gemeldet."]},
+  {list:["Pünktlich zum Dienst erscheinen","Funkdisziplin einhalten","Bei Verstößen greift der Sanktionskatalog"]}]},
+ aufstieg:{t:"Aufstieg im LSPD",d:"Voraussetzungen und Ablauf von Beförderungen.",b:[
+  {list:["Mindestdienstzeit im aktuellen Rang erfüllen","Keine offenen Sanktionen","Empfehlung eines Vorgesetzten","Beförderungsgespräch mit der Leitung"]}]},
+ raenge:{t:"Ränge & Besoldungen",d:"Alle Dienstgrade mit zugehöriger Besoldung.",b:[
+  {table:[["Rang","Besoldung pro Stunde"],["Cadet","–"],["Junior Officer","–"],["Officer","–"],["Senior Officer","–"],["Sergeant","–"],["Lieutenant","–"],["Captain","–"]]}]},
+ sanktionen:{t:"Sanktionskatalog",d:"Maßnahmen bei Verstößen gegen die Dienstvorschriften.",b:[
+  {table:[["Verstoß","Sanktion"],["Unpünktlichkeit","Ermahnung"],["Verstoß gegen Funkdisziplin","Abmahnung"],["Missbrauch von Dienstrechten","Suspendierung"]]}]},
+ frauen:{t:"Frauen - Dienstkleidung",d:"Erlaubte Uniformen und Abzeichen für Officerinnen.",b:[
+  {box:["Streifendienst","Hier Kleidungs-IDs und Bilder der Uniform eintragen."]},{box:["Abzeichen","Rangabzeichen werden gemäß aktuellem Rang getragen."]}]},
+ maenner:{t:"Männer - Dienstkleidung",d:"Erlaubte Uniformen und Abzeichen für Officer.",b:[
+  {box:["Streifendienst","Hier Kleidungs-IDs und Bilder der Uniform eintragen."]},{box:["Abzeichen","Rangabzeichen werden gemäß aktuellem Rang getragen."]}]},
+ unitkleidung:{t:"Unit - Dienstkleidung",d:"Spezielle Uniformen für Units und Innendienst.",b:[
+  {table:[["Unit","Kleidung"],["SWAT","–"],["Air Support","–"],["Detective","Zivil, Dienstmarke sichtbar"]]}]},
+ waffenscheine:{t:"Waffenscheine",d:"Ausgabe und Prüfung von Waffenlizenzen für Bürger.",b:[
+  {box:["Voraussetzungen","Der Bürger muss volljährig sein, einen gültigen Ausweis vorlegen und darf keine offenen Akteneinträge haben."]},
+  {table:[["Lizenz","Preis","Gültigkeit"],["Kurzwaffe","–","–"],["Langwaffe","–","–"]]}]},
+ uebersicht:{t:"Übersicht",d:"Der Streifendienst im Überblick.",b:[
+  {box:["Aufgaben","Präsenz im Stadtgebiet, Verkehrsüberwachung, Einsatzbearbeitung und Unterstützung der Kollegen."]},
+  {list:["Dienstantritt im LawNet registrieren","Fahrzeug und Ausrüstung prüfen","Funk auf den Streifenkanal stellen"]}]},
+ ortskunde:{t:"Ortskundekarte",d:"Wichtige Orte und Bezirke von Los Santos.",b:[{box:["Karte","Hier kannst du ein Bild der Karte einfügen."]}]},
+ fuhrpark:{t:"Fuhrpark",d:"Fahrzeuge und Freigaben nach Rang.",b:[{table:[["Fahrzeug","Ab Rang","Verwendung"],["Streifenwagen","Officer","Standard"],["Interceptor","Senior Officer","Verfolgung"]]}]},
+ essen:{t:"Essen & Trinken",d:"Regeln für Pausen im Dienst.",b:[{list:["Pause nur nach Abmeldung im Funk","Keine Pause während laufender Einsätze","Maximal 10 Minuten pro Pause"]}]},
+ funk:{t:"Funk",d:"Funkdisziplin und Codes.",b:[{table:[["Code","Bedeutung"],["10-4","Verstanden"],["10-20","Standort"],["10-60","Verkehrskontrolle"]]}]},
+ waffen:{t:"Waffen",d:"Erlaubte Ausrüstung und Einsatz von Waffen.",b:[{box:["Grundsatz","Waffeneinsatz nur verhältnismäßig und nach Androhung, sofern die Lage es zulässt."]}]},
+ festnehmen:{t:"Festnehmen & Inhaftieren",d:"Ablauf von der Festnahme bis zur Zelle.",b:[{list:["Festnahmegrund nennen und Rechte vorlesen","Person durchsuchen und Fesseln anlegen","Transport zur Wache","Akte erstellen und Haftzeit festlegen"]}]},
+ hilfe:{t:"Hilfe bei Einsätzen",d:"Wann und wie Verstärkung angefordert wird.",b:[{box:["Verstärkung","Standort, Lage und Anzahl der Personen per Funk durchgeben."]}]},
+ verkehr:{t:"Verkehrskontrolle (10-60)",d:"Ablauf einer Verkehrskontrolle.",b:[{list:["Fahrzeug sicher anhalten","Papiere kontrollieren","Verstoß feststellen und ahnden"]}]},
+ strafzettel:{t:"Falschparker Strafzettel",d:"Bußgelder für Park- und Halteverstöße.",b:[{table:[["Verstoß","Bußgeld"],["Falschparken","–"],["Halten im Halteverbot","–"]]}]},
+ akten:{t:"Akten erstellen",d:"So wird eine Akte korrekt angelegt.",b:[{list:["Personendaten vollständig erfassen","Tatvorwürfe sachlich beschreiben","Beweismittel anhängen"]}]},
+ bericht:{t:"Einsatzbericht",d:"Aufbau eines Einsatzberichts.",b:[{box:["Vorlage","Datum, Uhrzeit, Ort, beteiligte Personen, Ablauf, Maßnahmen."]}]},
+ fahndung:{t:"Fahndung",d:"Personen- und Fahrzeugfahndung.",b:[{box:["Ausschreibung","Eine Fahndung braucht Grund, Beschreibung und die Freigabe eines Vorgesetzten."]}]},
+ emotes:{t:"Emotes",d:"Erlaubte Emotes im Dienst.",b:[{table:[["Befehl","Wirkung"],["/e notepad","Notizblock"],["/e radio","Funk"]]}]},
+ hauptunits:{t:"Hauptunits",d:"Die Abteilungen des LSPD.",b:[{box:["Streifendienst","Grundversorgung und Präsenz im ganzen Stadtgebiet."]}]},
+ spezialunits:{t:"Spezialunits",d:"Spezialisierte Einheiten und Bewerbung.",b:[{box:["SWAT, Air Support, Detective","Voraussetzungen und Bewerbungsablauf der jeweiligen Unit."]}]}
+};
+
+const HOME_TILES=[
+ ["Werdegang & Rangsystem","Von der Ausbildung in der Police Academy bis zur Führungsverantwortung.","uebersicht"],
+ ["Dienstvorschriften","Verhaltensregeln, Dienstantritt und Leitlinien zur Verhandlungsführung.","festnehmen"],
+ ["Dienstkleidung & Abzeichen","Einheitlicher Dresscode und Hinweise zu Abzeichen.","hauptunits"],
+ ["Streifendienst & Fuhrpark","Registrierung im LawNet, Fahrzeugbesetzung und Wartung.","fuhrpark"]
+];
+
+const LEAD="Sehr geehrte Officer und Officerinnen des LSPD, willkommen im Dienstbuch. Hier finden Sie alle Vorschriften, Abläufe und Leitfäden für den Dienstalltag.";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const nav=document.getElementById("nav"), view=document.getElementById("view"), btnEdit=document.getElementById("edit");
+const DEFAULT={groups:GROUPS,pages:PAGES,tiles:HOME_TILES,lead:LEAD};
+const KEY="lspd:data";
+let D=clone(DEFAULT), cur="home", editing=false, hasLocal=false;
+const closed=new Set();
+try{const sv=localStorage.getItem(KEY);if(sv){D=JSON.parse(sv);hasLocal=true}}catch(e){}
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(D));hasLocal=true}catch(e){}};
+const groupOf=id=>D.groups.findIndex(g=>g.pages.includes(id));
+
+/* Eingebettete Pfade, z.B. pages.abc.b.0.box.1 */
+function setPath(p,v){const k=p.split(".");let o=D;for(let i=0;i<k.length-1;i++)o=o[k[i]];o[k[k.length-1]]=v}
+const ed=(path,v,tag,extra)=>`<${tag} contenteditable="true" data-p="${path}" ${extra||""}>${esc(v)}</${tag}>`;
+
+function buildNav(active){
+ const gi=groupOf(active);if(gi>=0)closed.delete(gi);
+ nav.innerHTML=D.groups.map((g,i)=>`<h4 data-g="${i}" class="${closed.has(i)?"closed":""}"><button type="button">${esc(g.name.toUpperCase())}</button></h4><div class="g ${closed.has(i)?"closed":""}" data-g="${i}">`+g.pages.filter(id=>D.pages[id]).map(id=>`<a href="#${id}" data-id="${id}" class="${id===active?"on":""}">${esc(D.pages[id].t)}</a>`).join("")+`</div>`).join("");
+ nav.querySelectorAll("h4 button").forEach(b=>b.onclick=()=>{const h=b.parentNode,i=+h.dataset.g;closed.has(i)?closed.delete(i):closed.add(i);h.classList.toggle("closed");nav.querySelector('.g[data-g="'+i+'"]').classList.toggle("closed")});
+}
+function bar(){return `<div class="bar"><b style="width:100%">Bearbeitungsmodus</b><span class="hint">Texte direkt anklicken und ändern. Änderungen werden automatisch in diesem Browser gespeichert. Damit alle Besucher sie sehen: „Daten herunterladen“ und die Datei <code>data.json</code> neben <code>index.html</code> auf GitHub hochladen.</span>
+ <button class="btn sm" data-act="newpage">＋ Neue Seite</button><button class="btn sm" data-act="delpage">Seite löschen</button><button class="btn sm" data-act="newgroup">＋ Neue Gruppe</button><button class="btn sm" data-act="rengroup">Gruppe umbenennen</button><button class="btn sm" data-act="download">Daten herunterladen</button><button class="btn sm" data-act="upload">Daten laden</button><button class="btn sm" data-act="reset">Zurücksetzen</button></div>`}
+function homeHTML(){
+ const e=editing;
+ return `<div class="hero"><div class="seal">LSPD</div><h1>Los Santos Police Department</h1><div class="sub">OFFIZIELLES DIENSTBUCH</div></div>
+ ${e?ed("lead",D.lead,"p",'class="lead"'):`<p class="lead">${esc(D.lead)}</p>`}
+ <div class="grid">${D.tiles.map((t,i)=>e?`<div class="tile">${ed(`tiles.${i}.0`,t[0],"b")}${ed(`tiles.${i}.1`,t[1],"span")}</div>`:`<a class="tile" href="#${t[2]}"><b>${esc(t[0])}</b><span>${esc(t[1])}</span></a>`).join("")}</div>`;
+}
+function blockHTML(id,x,i,n){
+ const e=editing,pre=`pages.${id}.b.${i}`;
+ const tb=e?`<div class="tb"><button class="btn sm" data-act="up" data-i="${i}">↑</button><button class="btn sm" data-act="down" data-i="${i}">↓</button><button class="btn sm" data-act="del" data-i="${i}">Block löschen</button></div>`:"";
+ let c="";
+ if(x.box)c=e?`${ed(pre+".box.0",x.box[0],"h3")}${ed(pre+".box.1",x.box[1],"p")}`:`<h3>${esc(x.box[0])}</h3><p>${esc(x.box[1])}</p>`;
+ else if(x.list)c=`<ul>${x.list.map((v,j)=>`<li>${e?ed(`${pre}.list.${j}`,v,"span")+`<button class="mini" data-act="dli" data-i="${i}" data-j="${j}" aria-label="Punkt löschen">✕</button>`:esc(v)}</li>`).join("")}</ul>`+(e?`<button class="btn sm" data-act="ali" data-i="${i}">＋ Punkt</button>`:"");
+ else if(x.table)c=`<table>${x.table.map((r,j)=>`<tr>${r.map((v,k)=>{const t=j?"td":"th";return e?ed(`${pre}.table.${j}.${k}`,v,t):`<${t}>${esc(v)}</${t}>`}).join("")}${e?(j?`<td class="x"><button class="mini" data-act="drow" data-i="${i}" data-j="${j}" aria-label="Zeile löschen">✕</button></td>`:`<th class="x"></th>`):""}</tr>`).join("")}</table>`+(e?`<div class="addbar"><button class="btn sm" data-act="arow" data-i="${i}">＋ Zeile</button><button class="btn sm" data-act="acol" data-i="${i}">＋ Spalte</button><button class="btn sm" data-act="dcol" data-i="${i}">− Spalte</button></div>`:"");
+ return `<div class="box">${tb}${c}</div>`;
+}
+function pageHTML(id,p){
+ const e=editing;
+ return `<div class="page">${e?ed(`pages.${id}.t`,p.t,"h2"):`<h2>${esc(p.t)}</h2>`}${e?ed(`pages.${id}.d`,p.d||"","p"):`<p>${esc(p.d||"")}</p>`}${p.b.map((x,i)=>blockHTML(id,x,i,p.b.length)).join("")}${e?`<div class="addbar"><button class="btn sm" data-act="addbox">＋ Textbox</button><button class="btn sm" data-act="addlist">＋ Liste</button><button class="btn sm" data-act="addtable">＋ Tabelle</button></div>`:""}</div>`;
+}
+function render(id,keep){
+ if(!session)return;
+ if(!(D.pages[id]&&D.pages[id].b))id="home";
+ cur=id;
+ const main=document.querySelector("main"),y=main.scrollTop;
+ view.innerHTML=(editing?bar():"")+(id==="home"?homeHTML():pageHTML(id,D.pages[id]));
+ buildNav(id);
+ nav.classList.remove("open");
+ main.scrollTo(0,keep?y:0);
+ btnEdit.classList.toggle("on",editing);btnEdit.textContent=editing?"Fertig":"Bearbeiten";
+}
+function go(id){try{history.replaceState(null,"","#"+id)}catch(e){}render(id)}
+function route(){if(!session)return;render(location.hash.slice(1)||"home")}
+
+view.addEventListener("input",e=>{
+ const p=e.target.dataset&&e.target.dataset.p;if(!p)return;
+ setPath(p,e.target.textContent);persist();
+ if(/\.t$/.test(p))buildNav(cur);
+});
+view.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.dataset&&e.target.dataset.p)e.preventDefault()});
+view.addEventListener("paste",e=>{if(e.target.dataset&&e.target.dataset.p){e.preventDefault();document.execCommand("insertText",false,e.clipboardData.getData("text/plain").replace(/\s*\n\s*/g," "))}});
+view.addEventListener("click",e=>{
+ const b=e.target.closest("[data-act]");if(!b)return;
+ const a=b.dataset.act,i=+b.dataset.i,j=+b.dataset.j,P=D.pages[cur],B=P&&P.b;
+ const needB=["addbox","addlist","addtable","up","down","del","dli","ali","drow","arow","acol","dcol"];
+ if(needB.includes(a)&&!B)return;
+ switch(a){
+  case "addbox":B.push({box:["Titel","Text"]});break;
+  case "addlist":B.push({list:["Neuer Punkt"]});break;
+  case "addtable":B.push({table:[["Spalte 1","Spalte 2"],["",""]]});break;
+  case "up":if(i>0)[B[i-1],B[i]]=[B[i],B[i-1]];break;
+  case "down":if(i<B.length-1)[B[i+1],B[i]]=[B[i],B[i+1]];break;
+  case "del":B.splice(i,1);break;
+  case "dli":B[i].list.splice(j,1);break;
+  case "ali":B[i].list.push("Neuer Punkt");break;
+  case "drow":B[i].table.splice(j,1);break;
+  case "arow":B[i].table.push(B[i].table[0].map(()=>""));break;
+  case "acol":B[i].table.forEach((r,k)=>r.push(k?"":"Spalte"));break;
+  case "dcol":if(B[i].table[0].length>1)B[i].table.forEach(r=>r.pop());break;
+  case "newpage":{const t=prompt("Titel der neuen Seite:");if(!t)return;const id="p"+Date.now().toString(36);D.pages[id]={t,d:"",b:[{box:["Titel","Text"]}]};D.groups[Math.max(0,groupOf(cur))].pages.push(id);cur=id;try{history.replaceState(null,"","#"+id)}catch(x){}break}
+  case "delpage":{if(!B||!confirm("Diese Seite wirklich löschen?"))return;D.groups.forEach(g=>g.pages=g.pages.filter(x=>x!==cur));delete D.pages[cur];cur="home";try{history.replaceState(null,"","#home")}catch(x){}break}
+  case "newgroup":{const n=prompt("Name der neuen Gruppe:");if(!n)return;D.groups.push({name:n,pages:[]});break}
+  case "rengroup":{const g=groupOf(cur);if(g<0){alert("Öffne zuerst eine Seite der Gruppe, die du umbenennen willst.");return}const n=prompt("Neuer Gruppenname:",D.groups[g].name);if(!n)return;D.groups[g].name=n;break}
+  case "download":{const u=URL.createObjectURL(new Blob([JSON.stringify(D,null,1)],{type:"application/json"})),l=document.createElement("a");l.href=u;l.download="data.json";document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);return}
+  case "upload":{const f=document.createElement("input");f.type="file";f.accept=".json,application/json";f.onchange=()=>{const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);if(!j.groups||!j.pages)throw 0;D=j;persist();render(cur)}catch(x){alert("Die Datei ist keine gültige data.json.")}};r.readAsText(f.files[0])};f.click();return}
+  case "reset":{if(!confirm("Alle eigenen Änderungen in diesem Browser verwerfen?"))return;D=clone(DEFAULT);try{localStorage.removeItem(KEY)}catch(x){}hasLocal=false;cur="home";break}
+ }
+ persist();render(cur,true);
+});
+btnEdit.onclick=()=>{editing=!editing;if(!editing)persist();render(cur,true)};
+document.getElementById("export").onclick=()=>window.print();
+document.getElementById("burger").onclick=()=>nav.classList.toggle("open");
+document.querySelector(".logo").onclick=()=>go("home");
+document.addEventListener("click",e=>{const a=e.target.closest('a[href^="#"]');if(!a)return;e.preventDefault();go(a.getAttribute("href").slice(1)||"home")});
+addEventListener("hashchange",route);
+/* ===== Discord-Login ===== */
+const SKEY="lspd:session";
+let session=null;
+const lock=document.getElementById("lock"), lmsg=document.getElementById("lmsg"), usr=document.getElementById("usr"), btnLogout=document.getElementById("logout"), btnLogin=document.getElementById("login");
+const redirectUri=()=>location.origin+location.pathname.replace(/index\.html$/,"");
+function showLock(msg,noButton){
+ document.body.classList.add("locked");
+ view.innerHTML="";nav.innerHTML="";
+ lmsg.textContent=msg||"";btnLogin.hidden=!!noButton;
+}
+function login(){
+ const st=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,"0")).join("");
+ sessionStorage.setItem("lspd:state",st);
+ sessionStorage.setItem("lspd:ret",location.hash.slice(1)||"home");
+ location.href="https://discord.com/oauth2/authorize?"+new URLSearchParams({client_id:CFG.CLIENT_ID,response_type:"token",redirect_uri:redirectUri(),scope:"identify guilds.members.read",state:st});
+}
+async function verify(token,expSec){
+ const H={Authorization:"Bearer "+token};
+ const r=await fetch("https://discord.com/api/v10/users/@me",{headers:H});
+ if(!r.ok)throw new Error("Die Anmeldung bei Discord ist fehlgeschlagen.");
+ const u=await r.json();let roles=[];
+ if(CFG.GUILD_ID){
+  const m=await fetch("https://discord.com/api/v10/users/@me/guilds/"+encodeURIComponent(CFG.GUILD_ID)+"/member",{headers:H});
+  if(m.status===404||m.status===403)return {ok:false,reason:"Du bist nicht auf dem LSPD-Discord-Server."};
+  if(!m.ok)throw new Error("Die Server-Mitgliedschaft konnte nicht geprüft werden.");
+  roles=(await m.json()).roles||[];
+ }
+ const has=a=>a.some(x=>roles.includes(x));
+ const ok=!CFG.ALLOWED_ROLES.length||has(CFG.ALLOWED_ROLES);
+ if(!ok)return {ok:false,reason:"Dir fehlt die nötige Rolle für das Dienstbuch."};
+ return {ok:true,canEdit:!CFG.EDIT_ROLES.length||has(CFG.EDIT_ROLES),user:{id:u.id,name:u.global_name||u.username,avatar:u.avatar},exp:Date.now()+expSec*1000};
+}
+function unlock(){
+ document.body.classList.remove("locked");
+ usr.textContent="";
+ const u=session.user;
+ if(u.avatar){const im=document.createElement("img");im.alt="";im.src="https://cdn.discordapp.com/avatars/"+encodeURIComponent(u.id)+"/"+encodeURIComponent(u.avatar)+".png?size=64";usr.appendChild(im)}
+ usr.appendChild(document.createTextNode(u.name));
+ usr.hidden=false;btnLogout.hidden=false;btnEdit.hidden=!session.canEdit;
+ route();loadShared();
+}
+function logout(){
+ try{localStorage.removeItem(SKEY)}catch(e){}
+ session=null;editing=false;usr.hidden=true;btnLogout.hidden=true;
+ try{history.replaceState(null,"",location.pathname)}catch(e){}
+ showLock("Du wurdest abgemeldet.");
+}
+async function boot(){
+ if(!CFG.CLIENT_ID){showLock("Der Discord-Login ist noch nicht eingerichtet. Trage oben in index.html bei CFG die CLIENT_ID ein und füge diese Weiterleitungs-URL im Discord Developer Portal unter OAuth2 hinzu: "+redirectUri(),true);return}
+ const hp=new URLSearchParams(location.hash.replace(/^#/,"")),qp=new URLSearchParams(location.search);
+ if(hp.get("access_token")){
+  const back=sessionStorage.getItem("lspd:ret")||"home",okState=hp.get("state")&&hp.get("state")===sessionStorage.getItem("lspd:state");
+  try{history.replaceState(null,"",location.pathname+"#"+back)}catch(e){}
+  sessionStorage.removeItem("lspd:state");
+  if(!okState){showLock("Die Anmeldung wurde aus Sicherheitsgründen abgelehnt. Bitte versuche es erneut.");return}
+  try{const s=await verify(hp.get("access_token"),+hp.get("expires_in")||86400);if(!s.ok){showLock(s.reason);return}localStorage.setItem(SKEY,JSON.stringify(s));session=s}
+  catch(e){showLock(e.message||"Die Anmeldung ist fehlgeschlagen.");return}
+ }else if(hp.get("error")||qp.get("error")){
+  try{history.replaceState(null,"",location.pathname)}catch(e){}
+  showLock("Die Anmeldung wurde abgebrochen.");return;
+ }else{
+  try{const s=JSON.parse(localStorage.getItem(SKEY)||"null");if(s&&s.exp>Date.now())session=s}catch(e){}
+ }
+ if(!session){showLock("");return}
+ unlock();
+}
+btnLogin.onclick=login;btnLogout.onclick=logout;
+/* Gemeinsame Inhalte: data.json neben index.html hat Vorrang vor den Standardtexten, eigene Browser-Änderungen vor data.json */
+function loadShared(){try{fetch("data.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.groups&&j.pages&&!hasLocal&&!editing){D=j;route()}}).catch(()=>{})}catch(e){}}
+boot();
+</script>
+</body>
+</html>
